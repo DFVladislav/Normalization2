@@ -1,0 +1,236 @@
+2026-11-17T07:07:55.923718Z	   55 Query	CREATE DATABASE IF NOT EXISTS sales_norm_lab2
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci
+2026-11-17T07:07:56.027799Z	   55 Query	USE sales_norm_lab2
+2026-11-17T07:07:56.036265Z	   55 Query	CREATE TABLE orders_bad (
+    sale_id     INT,
+    sale_date   DATE,
+    client_id   INT,
+    client_name VARCHAR(100),
+    client_city VARCHAR(100),
+    product_id  INT,
+    product_name VARCHAR(100),
+    unit_price  DECIMAL(10,2),
+    quantity    INT
+)
+2026-11-17T07:07:56.251672Z	   55 Query	INSERT INTO orders_bad VALUES
+(5001, '2026-11-01', 101, 'Иванов Иван',     'Москва',          201, 'Монитор',    15000.00, 2),
+(5001, '2026-11-01', 101, 'Иванов Иван',     'Москва',          202, 'Клавиатура',  2000.00, 1),
+(5002, '2026-11-02', 102, 'Петрова Мария',   'Санкт-Петербург', 203, 'Мышь',        1000.00, 3),
+(5002, '2026-11-02', 102, 'Петрова Мария',   'Санкт-Петербург', 204, 'Наушники',    3500.00, 1),
+(5003, '2026-11-03', 101, 'Иванов Иван',     'Москва',          205, 'Колонки',     2500.00, 2),
+(5004, '2026-11-04', 103, 'Сидоров Алексей', 'Казань',          202, 'Клавиатура',  2000.00, 5),
+(5004, '2026-11-04', 103, 'Сидоров Алексей', 'Казань',          203, 'Мышь',        1000.00, 2),
+(5005, '2026-11-05', 102, 'Петрова Мария',   'Санкт-Петербург', 201, 'Монитор',    15000.00, 1),
+(5006, '2026-11-06', 103, 'Сидоров Алексей', 'Казань',          204, 'Наушники',    3500.00, 2),
+(5006, '2026-11-06', 103, 'Сидоров Алексей', 'Казань',          205, 'Колонки',     2500.00, 1)
+2026-11-17T07:07:56.279429Z	   55 Query	SELECT * FROM orders_bad ORDER BY sale_id, product_id
+2026-11-17T07:07:56.282455Z	   55 Query	USE sales_norm_lab2
+2026-11-17T07:07:56.285650Z	   55 Query	START TRANSACTION
+2026-11-17T07:07:56.286904Z	   55 Query	UPDATE orders_bad
+SET client_city = 'Новосибирск'
+WHERE client_id = 101 AND sale_id = 5001 AND product_id = 201
+2026-11-17T07:07:56.290376Z	   55 Query	SELECT client_id, client_name, client_city, COUNT(*) AS rows_count
+FROM orders_bad
+WHERE client_id = 101
+GROUP BY client_id, client_name, client_city
+2026-11-17T07:07:56.293180Z	   55 Query	ROLLBACK
+2026-11-17T07:07:56.300243Z	   55 Query	START TRANSACTION
+2026-11-17T07:07:56.301746Z	   55 Query	INSERT INTO orders_bad
+    (sale_id, sale_date, client_id, client_name, client_city,
+     product_id, product_name, unit_price, quantity)
+VALUES
+    (NULL, NULL, 104, 'Новый клиент', 'Самара',
+     NULL, NULL, NULL, NULL)
+2026-11-17T07:07:56.302411Z	   55 Query	SELECT * FROM orders_bad WHERE client_id = 104
+2026-11-17T07:07:56.302834Z	   55 Query	ROLLBACK
+2026-11-17T07:07:56.305038Z	   55 Query	START TRANSACTION
+2026-11-17T07:07:56.306035Z	   55 Query	DELETE FROM orders_bad WHERE client_id = 102
+2026-11-17T07:07:56.310152Z	   55 Query	SELECT COUNT(*) AS remaining_rows_for_client_102
+FROM orders_bad
+WHERE client_id = 102
+2026-11-17T07:07:56.311385Z	   55 Query	SELECT DISTINCT client_id, client_name, client_city
+FROM orders_bad
+WHERE client_id = 102
+2026-11-17T07:07:56.312878Z	   55 Query	ROLLBACK
+2026-11-17T07:07:56.316544Z	   55 Query	SELECT COUNT(*) AS source_rows_after_rollbacks
+FROM orders_bad
+2026-11-17T07:08:38.874415Z	   62 Query	USE sales_norm_lab2
+2026-11-17T07:08:38.874735Z	   62 Query	CREATE TABLE clients (
+    client_id   INT          NOT NULL,
+    client_name VARCHAR(100) NOT NULL,
+    client_city VARCHAR(100) NOT NULL,
+    PRIMARY KEY (client_id)
+)
+2026-11-17T07:08:38.960009Z	   62 Query	CREATE TABLE products (
+    product_id   INT           NOT NULL,
+    product_name VARCHAR(100)  NOT NULL,
+    unit_price   DECIMAL(10,2) NOT NULL,
+    PRIMARY KEY (product_id)
+)
+2026-11-17T07:08:39.020422Z	   62 Query	CREATE TABLE sales (
+    sale_id   INT  NOT NULL,
+    sale_date DATE NOT NULL,
+    client_id INT  NOT NULL,
+    PRIMARY KEY (sale_id),
+    FOREIGN KEY (client_id) REFERENCES clients (client_id)
+)
+2026-11-17T07:08:39.121116Z	   62 Query	CREATE TABLE sale_items (
+    sale_id    INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity   INT NOT NULL,
+    PRIMARY KEY (sale_id, product_id),
+    FOREIGN KEY (sale_id) REFERENCES sales (sale_id),
+    FOREIGN KEY (product_id) REFERENCES products (product_id)
+)
+2026-11-17T07:08:39.185727Z	   62 Query	INSERT INTO clients (client_id, client_name, client_city)
+SELECT DISTINCT client_id, client_name, client_city
+FROM orders_bad
+2026-11-17T07:08:39.200008Z	   62 Query	INSERT INTO products (product_id, product_name, unit_price)
+SELECT DISTINCT product_id, product_name, unit_price
+FROM orders_bad
+2026-11-17T07:08:39.212646Z	   62 Query	INSERT INTO sales (sale_id, sale_date, client_id)
+SELECT DISTINCT sale_id, sale_date, client_id
+FROM orders_bad
+2026-11-17T07:08:39.224157Z	   62 Query	INSERT INTO sale_items (sale_id, product_id, quantity)
+SELECT sale_id, product_id, quantity
+FROM orders_bad
+2026-11-17T07:08:39.237765Z	   62 Query	SELECT 'clients' AS table_name, COUNT(*) AS rows_count FROM clients
+UNION ALL SELECT 'products', COUNT(*) FROM products
+UNION ALL SELECT 'sales', COUNT(*) FROM sales
+UNION ALL SELECT 'sale_items', COUNT(*) FROM sale_items
+2026-11-17T07:08:39.244272Z	   62 Query	USE sales_norm_lab2
+2026-11-17T07:08:39.246553Z	   62 Query	SELECT 'before_normalization' AS stage,
+       COUNT(*) AS rows_count,
+       SUM(unit_price * quantity) AS total_amount
+FROM orders_bad
+UNION ALL
+SELECT 'after_normalization',
+       COUNT(*),
+       SUM(p.unit_price * i.quantity)
+FROM sale_items i
+JOIN products p ON p.product_id = i.product_id
+2026-11-17T07:08:39.248807Z	   62 Query	SELECT 'clients' AS entity,
+       (SELECT COUNT(DISTINCT client_id) FROM orders_bad) AS source_count,
+       (SELECT COUNT(*) FROM clients) AS normalized_count
+UNION ALL
+SELECT 'products',
+       (SELECT COUNT(DISTINCT product_id) FROM orders_bad),
+       (SELECT COUNT(*) FROM products)
+UNION ALL
+SELECT 'sales',
+       (SELECT COUNT(DISTINCT sale_id) FROM orders_bad),
+       (SELECT COUNT(*) FROM sales)
+UNION ALL
+SELECT 'sale_items',
+       (SELECT COUNT(*) FROM orders_bad),
+       (SELECT COUNT(*) FROM sale_items)
+2026-11-17T07:08:39.264349Z	   62 Query	SELECT 'missing_from_3nf' AS check_name, COUNT(*) AS rows_count
+FROM orders_bad b
+LEFT JOIN sales s ON s.sale_id = b.sale_id
+LEFT JOIN clients c ON c.client_id = s.client_id
+LEFT JOIN sale_items i
+       ON i.sale_id = b.sale_id AND i.product_id = b.product_id
+LEFT JOIN products p ON p.product_id = i.product_id
+WHERE s.sale_id IS NULL
+   OR c.client_id IS NULL
+   OR i.sale_id IS NULL
+   OR p.product_id IS NULL
+   OR NOT (s.sale_date <=> b.sale_date)
+   OR NOT (s.client_id <=> b.client_id)
+   OR NOT (c.client_name <=> b.client_name)
+   OR NOT (c.client_city <=> b.client_city)
+   OR NOT (p.product_name <=> b.product_name)
+   OR NOT (p.unit_price <=> b.unit_price)
+   OR NOT (i.quantity <=> b.quantity)
+UNION ALL
+SELECT 'extra_in_3nf', COUNT(*)
+FROM sale_items i
+LEFT JOIN orders_bad b
+       ON b.sale_id = i.sale_id AND b.product_id = i.product_id
+WHERE b.sale_id IS NULL
+2026-11-17T07:08:39.265664Z	   62 Query	SELECT s.sale_id,
+       s.sale_date,
+       c.client_id,
+       c.client_name,
+       c.client_city,
+       p.product_id,
+       p.product_name,
+       p.unit_price,
+       i.quantity
+FROM sales s
+JOIN clients c ON c.client_id = s.client_id
+JOIN sale_items i ON i.sale_id = s.sale_id
+JOIN products p ON p.product_id = i.product_id
+ORDER BY s.sale_id, p.product_id
+2026-11-17T07:08:39.266375Z	   62 Query	SELECT c.client_id,
+       c.client_name,
+       SUM(p.unit_price * i.quantity) AS total_spent
+FROM clients c
+JOIN sales s ON s.client_id = c.client_id
+JOIN sale_items i ON i.sale_id = s.sale_id
+JOIN products p ON p.product_id = i.product_id
+GROUP BY c.client_id, c.client_name
+ORDER BY c.client_id
+2026-11-17T07:08:39.269951Z	   62 Query	SELECT p.product_id,
+       p.product_name,
+       SUM(i.quantity) AS quantity_sold
+FROM products p
+JOIN sale_items i ON i.product_id = p.product_id
+GROUP BY p.product_id, p.product_name
+ORDER BY p.product_id
+2026-11-17T07:08:48.344800Z	   63 Query	USE sales_norm_lab2
+2026-11-17T07:08:48.345049Z	   63 Query	RENAME TABLE orders_bad TO orders_bad_archive
+2026-11-17T07:08:48.411828Z	   63 Query	SHOW TABLES
+2026-11-17T07:08:48.414219Z	   63 Query	SELECT COUNT(*) AS archived_source_rows FROM orders_bad_archive
+2026-11-17T07:08:48.422420Z	   63 Query	USE sales_norm_lab2
+2026-11-17T07:08:48.422751Z	   63 Query	SELECT 'archived_source' AS stage,
+       COUNT(*) AS rows_count,
+       SUM(unit_price * quantity) AS total_amount
+FROM orders_bad_archive
+UNION ALL
+SELECT 'normalized',
+       COUNT(*),
+       SUM(p.unit_price * i.quantity)
+FROM sale_items i
+JOIN products p ON p.product_id = i.product_id
+2026-11-17T07:08:48.425560Z	   63 Query	SELECT 'clients' AS table_name, COUNT(*) AS rows_count FROM clients
+UNION ALL SELECT 'products', COUNT(*) FROM products
+UNION ALL SELECT 'sales', COUNT(*) FROM sales
+UNION ALL SELECT 'sale_items', COUNT(*) FROM sale_items
+2026-11-17T07:08:48.433394Z	   63 Query	SELECT c.client_id,
+       c.client_name,
+       SUM(p.unit_price * i.quantity) AS total_spent
+FROM clients c
+JOIN sales s ON s.client_id = c.client_id
+JOIN sale_items i ON i.sale_id = s.sale_id
+JOIN products p ON p.product_id = i.product_id
+WHERE c.client_id = 101
+GROUP BY c.client_id, c.client_name
+2026-11-17T07:14:48.887295Z	   75 Query	USE sales_norm_lab2
+2026-11-17T07:14:48.888164Z	   75 Query	START TRANSACTION
+2026-11-17T07:14:48.888639Z	   75 Query	UPDATE clients
+SET client_city = 'Самара (тест)'
+WHERE client_id = 101
+2026-11-17T07:14:48.898547Z	   75 Query	SELECT c.client_id, c.client_name, c.client_city, COUNT(*) AS sale_items
+FROM clients c
+JOIN sales s ON s.client_id = c.client_id
+JOIN sale_items i ON i.sale_id = s.sale_id
+WHERE c.client_id = 101
+GROUP BY c.client_id, c.client_name, c.client_city
+2026-11-17T07:14:48.899418Z	   75 Query	ROLLBACK
+2026-11-17T07:14:48.903499Z	   75 Query	START TRANSACTION
+2026-11-17T07:14:48.903723Z	   75 Query	INSERT INTO clients (client_id, client_name, client_city)
+VALUES (104, 'Новый клиент', 'Самара')
+2026-11-17T07:14:48.904548Z	   75 Query	SELECT * FROM clients WHERE client_id = 104
+2026-11-17T07:14:48.904882Z	   75 Query	ROLLBACK
+2026-11-17T07:14:48.918755Z	   75 Query	START TRANSACTION
+2026-11-17T07:14:48.919202Z	   75 Query	DELETE FROM sale_items
+WHERE sale_id IN (SELECT sale_id FROM sales WHERE client_id = 102)
+2026-11-17T07:14:48.932932Z	   75 Query	DELETE FROM sales WHERE client_id = 102
+2026-11-17T07:14:48.934010Z	   75 Query	SELECT * FROM clients WHERE client_id = 102
+2026-11-17T07:14:48.934483Z	   75 Query	SELECT product_id, product_name
+FROM products
+WHERE product_id IN (201, 203, 204)
+ORDER BY product_id
+2026-11-17T07:14:48.937913Z	   75 Query	ROLLBACK
